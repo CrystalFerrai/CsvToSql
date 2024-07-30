@@ -53,7 +53,7 @@ namespace CsvToSql
 			{
 				int lineNumber = 1;
 
-				string? outPath = reader.ReadLine();
+				string? outPath = ReadLine(reader);
 				if (outPath is null) throw new ConfigException("Config file not long enough.");
 
 				string outFullPath = Path.Combine(baseDir, outPath);
@@ -80,10 +80,7 @@ namespace CsvToSql
 				List<InputFile> inputFiles = new();
 				while (!reader.EndOfStream)
 				{
-					string inputLine = reader.ReadLine()!.Trim();
-
-					if (inputLine.Length == 0) continue;
-					if (inputLine.StartsWith('#')) continue;
+					string inputLine = ReadLine(reader)!;
 
 					string[] inputLineParts = inputLine.Split('|');
 					if (inputLineParts.Length != 2) throw new ConfigException($"Unable to parse config line {lineNumber}.");
@@ -126,6 +123,16 @@ namespace CsvToSql
 
 				return new(outFullPath, inputFiles);
 			}
+		}
+
+		private static string? ReadLine(TextReader reader)
+		{
+			string? line = null;
+			do
+			{
+				line = reader.ReadLine()?.Trim();
+			} while (line is not null && (line.Length == 0 || line.StartsWith('#')));
+			return line;
 		}
 	}
 
