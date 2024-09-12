@@ -53,6 +53,7 @@ namespace CsvToSql
 				writer.WriteLine($"truncate {inputFile.TableName};");
 
 				int lineNumber = 1;
+				int n = 0;
 				string? line;
 				List<string> fields = new();
 				while ((line = reader.ReadLine()) is not null)
@@ -74,7 +75,12 @@ namespace CsvToSql
 						throw new ConverterException($"Row {lineNumber} contains {fields.Count} fields, but only {inputFile.FieldTypes.Count} field types were specified on the command line.");
 					}
 
-					writer.Write($"insert into {inputFile.TableName} values (");
+					if (n == 0)
+					{
+						writer.WriteLine($"insert into {inputFile.TableName} values");
+					}
+
+					writer.Write($"(");
 					for (int i = 0; i < fields.Count - 1; ++i)
 					{
 						WriteField(writer, fields[i], inputFile.FieldTypes[i]);
@@ -84,10 +90,26 @@ namespace CsvToSql
 					{
 						WriteField(writer, fields[fields.Count - 1], inputFile.FieldTypes[fields.Count - 1]);
 					}
-					writer.WriteLine($");");
+
+					if (n == 999)
+					{
+						writer.WriteLine($");");
+						n = 0;
+					}
+					else
+					{
+						writer.WriteLine($"),");
+						++n; 
+					}
 
 					++lineNumber;
 				}
+
+				// Replace final comma + newline with semicolon + newline
+				// (The final line may already have a semicolon, but this is still fine in that case)
+				writer.Flush();
+				outFile.Seek(-2, SeekOrigin.Current);
+				writer.WriteLine($";");
 			}
 
 			writer.WriteLine();
